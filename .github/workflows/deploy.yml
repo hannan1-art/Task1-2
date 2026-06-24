@@ -1,0 +1,59 @@
+name: Terraform CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Install Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # Install TFLint (linting step)
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Run TFLint
+        run: |
+          tflint --init
+          tflint
+
+      # AWS Auth via OIDC (NO secrets)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::554799385038:role/OIDCROLE
+          aws-region: us-east-1
+
+      # Terraform Init
+      - name: Terraform Init
+        run: terraform init
+
+      # Formatting check
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      # Validate
+      - name: Terraform Validate
+        run: terraform validate
+
+      # Plan
+      - name: Terraform Plan
+        run: terraform plan
+
+      # Apply
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
